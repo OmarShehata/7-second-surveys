@@ -2,4 +2,4 @@
 
 [7 Second Surveys](home.md)
 
-- [The Breakfast Survey](1_breakfast.md)
+- [What do you have for breakfast?](1_breakfast.md)
