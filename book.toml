@@ -8,6 +8,7 @@ title = "7 Second Surveys"
 [output.html]
 edit-url-template = "https://github.com/OmarShehata/7-second-surveys/edit/main/{path}"
 
+
 [output.html.print]
 enable = false 
 
