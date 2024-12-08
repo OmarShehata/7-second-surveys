@@ -2,6 +2,8 @@
  What do you have for breakfast?
 </h1>
 
+<meta property="og:image" content="images/word-cloud.png">
+
 <p style="color:gray; font-style:italic; margin-top:0px">
 December 2nd, 2024 — <a href="assets/breakfast-responses.html" target="_blank" style="color:gray">read all survey responses</a> — <a href="assets/1_breakfast.csv" target="_blank" style="color:gray">download as CSV</a> 
 </p>
