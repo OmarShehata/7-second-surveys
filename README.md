@@ -11,7 +11,3 @@ Run locally with:
 ```
 ~/mdbook serve
 ```
-
-TODOs
-
-- Make a page where you see the results live, semantically clustered?

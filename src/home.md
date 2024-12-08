@@ -6,7 +6,7 @@
     finding meaning in the mundane
 </p>
 
-Every week I send out a tiny anonymous survey to my friends, to my local community, and to the internet about something I'm really curious about. Any time I find myself wondering, "is this just something weird that _I_ do, or is everyone like this?" I put it in the list.
+I send out tiny anonymous surveys to my friends, to my local community, and to the internet about something I'm really curious about.
 
 <!-- 
 
