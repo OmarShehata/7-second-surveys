@@ -11,7 +11,3 @@ fold = { enable = true, level = 0 }
 
 [output.html.print]
 enable = false 
-
-[preprocessor.toc]
-command = "mdbook-toc"
-renderer = ["html"]
