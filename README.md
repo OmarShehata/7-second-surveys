@@ -6,6 +6,12 @@ I have questions I think a lot about, and I ask them anonymously to my friends, 
 
 ### Read it here: https://omarshehata.github.io/7-second-surveys/
 
+Run locally with:
+
+```
+~/mdbook serve
+```
+
 TODOs
 
 - Make a page where you see the results live, semantically clustered?

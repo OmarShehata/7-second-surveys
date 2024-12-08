@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Semantic Analysis Sandbox</title>
+    <style>
+        body { 
+            font-family: system-ui; 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            padding: 20px;
+        }
+        #dropZone {
+            border: 2px dashed #ccc;
+            border-radius: 4px;
+            padding: 20px;
+            text-align: center;
+            background: #f9f9f9;
+            margin-bottom: 20px;
+        }
+        #dropZone.dragover {
+            background: #e1e1e1;
+            border-color: #999;
+        }
+        .controls {
+            margin-bottom: 20px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 4px;
+        }
+        #dataPreview {
+            overflow-x: auto;
+            margin-bottom: 20px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background: #f5f5f5;
+        }
+        .cluster-group {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        #visualization {
+            border: 1px solid #ddd;
+            margin-top: 20px;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <h1>Semantic Analysis Sandbox</h1>
+    
+    <div id="dropZone">
+        Drop CSV file here or click to select
+        <input type="file" id="fileInput" accept=".csv" style="display: none;">
+    </div>
+
+    <div class="controls">
+        <select id="columnSelect" disabled>
+            <option value="">Select column for analysis</option>
+        </select>
+        <input type="number" id="kClusters" value="3" min="2" max="10" placeholder="Number of clusters">
+        <button id="analyzeBtn" disabled>Analyze</button>
+        <button id="clearBtn">Clear Data</button>
+    </div>
+
+    <div id="dataPreview"></div>
+    <div id="results"></div>
+    <canvas id="visualization"></canvas>
+
+    <script>
+        // Mock embedding function - replace with your implementation
+        async function getEmbedding(text) {
+            try {
+                
+                const response = await fetch('http://localhost:1234/v1/embeddings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: 'text-embedding-nomic-embed-text-v1.5',
+                        input: text
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                return data.data[0].embedding;
+
+            } catch (error) {
+                console.error('Error getting embedding:', error);
+                throw error;
+            }
+        }
+
+        // K-means clustering implementation
+        function kMeans(vectors, k, maxIterations = 100) {
+            // Initialize centroids randomly
+            let centroids = vectors.slice(0, k);
+            let assignments = new Array(vectors.length).fill(0);
+            
+            for (let iter = 0; iter < maxIterations; iter++) {
+                let changed = false;
+                
+                // Assign points to nearest centroid
+                vectors.forEach((vector, i) => {
+                    const distances = centroids.map(centroid => 
+                        Math.sqrt(vector.reduce((sum, val, j) => 
+                            sum + Math.pow(val - centroid[j], 2), 0))
+                    );
+                    const newAssignment = distances.indexOf(Math.min(...distances));
+                    if (newAssignment !== assignments[i]) {
+                        changed = true;
+                        assignments[i] = newAssignment;
+                    }
+                });
+                
+                // Update centroids
+                centroids = Array(k).fill().map((_, i) => {
+                    const clusterPoints = vectors.filter((_, j) => assignments[j] === i);
+                    if (clusterPoints.length === 0) {
+                        // If cluster is empty, just keep its old centroid
+                        return centroids[i];
+                    }
+                    return clusterPoints[0].map((_, dim) => 
+                        clusterPoints.reduce((sum, p) => sum + p[dim], 0) / clusterPoints.length
+                    );
+                });
+                
+                if (!changed) break;
+            }
+            
+            return assignments;
+        }
+
+        // Simple 2D projection (PCA-like)
+        function projectTo2D(vectors) {
+            return vectors.map(v => ({
+                x: v[0] * 100 + v[1] * 100,
+                y: v[2] * 100 + v[3] * 100
+            }));
+        }
+
+        // Visualization
+        function visualizeClusters(points2D, assignments) {
+            const canvas = document.getElementById('visualization');
+            const ctx = canvas.getContext('2d');
+            const width = 600;
+            const height = 400;
+            
+            canvas.width = width;
+            canvas.height = height;
+            ctx.clearRect(0, 0, width, height);
+
+            // Normalize points to fit canvas
+            const xValues = points2D.map(p => p.x);
+            const yValues = points2D.map(p => p.y);
+            const xMin = Math.min(...xValues);
+            const xMax = Math.max(...xValues);
+            const yMin = Math.min(...yValues);
+            const yMax = Math.max(...yValues);
+            
+            const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
+            
+            points2D.forEach((point, i) => {
+                const x = ((point.x - xMin) / (xMax - xMin)) * (width - 40) + 20;
+                const y = ((point.y - yMin) / (yMax - yMin)) * (height - 40) + 20;
+                
+                ctx.beginPath();
+                ctx.arc(x, y, 5, 0, 2 * Math.PI);
+                ctx.fillStyle = colors[assignments[i] % colors.length];
+                ctx.fill();
+            });
+        }
+
+        class SemanticAnalyzer {
+            constructor() {
+                this.data = null;
+                this.embeddings = null;
+                this.setupEventListeners();
+                this.loadFromLocalStorage();
+            }
+
+            setupEventListeners() {
+                const dropZone = document.getElementById('dropZone');
+                const fileInput = document.getElementById('fileInput');
+                
+                // File drop handlers
+                dropZone.ondragover = (e) => {
+                    e.preventDefault();
+                    dropZone.classList.add('dragover');
+                };
+                dropZone.ondragleave = () => dropZone.classList.remove('dragover');
+                dropZone.ondrop = (e) => {
+                    e.preventDefault();
+                    dropZone.classList.remove('dragover');
+                    this.handleFile(e.dataTransfer.files[0]);
+                };
+                dropZone.onclick = () => fileInput.click();
+                fileInput.onchange = (e) => this.handleFile(e.target.files[0]);
+
+                // Button handlers
+                document.getElementById('analyzeBtn').onclick = () => this.analyze();
+                document.getElementById('clearBtn').onclick = () => this.clearData();
+                document.getElementById('columnSelect').onchange = () => {
+                    document.getElementById('analyzeBtn').disabled = false;
+                };
+            }
+
+            async handleFile(file) {
+                return new Promise((resolve) => {
+                    Papa.parse(file, {
+                        header: true,
+                        skipEmptyLines: true,
+                        complete: (results) => {
+                            this.data = {
+                                headers: Object.keys(results.data[0]),
+                                rows: results.data
+                            };
+                            this.updateColumnSelect();
+                            this.showPreview();
+                            this.saveToLocalStorage();
+                            resolve();
+                        },
+                        error: (error) => {
+                            console.error('Error parsing CSV:', error);
+                        }
+                    });
+                });
+            }
+
+
+            updateColumnSelect() {
+                const select = document.getElementById('columnSelect');
+                select.innerHTML = '<option value="">Select column for analysis</option>';
+                this.data.headers.forEach(header => {
+                    const option = document.createElement('option');
+                    option.value = header;
+                    option.textContent = header;
+                    select.appendChild(option);
+                });
+                select.disabled = false;
+            }
+
+            showPreview() {
+                const preview = document.getElementById('dataPreview');
+                const table = document.createElement('table');
+                
+                // Headers
+                const headerRow = document.createElement('tr');
+                this.data.headers.forEach(header => {
+                    const th = document.createElement('th');
+                    th.textContent = header;
+                    headerRow.appendChild(th);
+                });
+                table.appendChild(headerRow);
+                
+                // Data (first 5 rows)
+                this.data.rows.slice(0, 5).forEach(row => {
+                    const tr = document.createElement('tr');
+                    this.data.headers.forEach(header => {
+                        const td = document.createElement('td');
+                        td.textContent = row[header];
+                        tr.appendChild(td);
+                    });
+                    table.appendChild(tr);
+                });
+                
+                preview.innerHTML = '';
+                preview.appendChild(table);
+            }
+
+            async analyze() {
+                const column = document.getElementById('columnSelect').value;
+                const k = parseInt(document.getElementById('kClusters').value);
+
+                const validRows = this.data.rows.filter(row => {
+                    const text = row[column];
+                    return text && text.trim().length > 0;
+                });
+
+                if (validRows.length === 0) {
+                    alert('No valid text found in selected column!');
+                    return;
+                }
+                
+                // Get embeddings
+                const texts = validRows.map(row => row[column]);
+                this.embeddings = []
+                for (let i = 0; i < texts.length; i++) {
+                    const vector = await getEmbedding(texts[i])
+                    this.embeddings.push(vector)
+                }
+                // this.embeddings = await Promise.all(texts.map(getEmbedding));
+                
+                // Perform clustering
+                const assignments = kMeans(this.embeddings, k);
+                
+                // Visualize results
+                const points2D = projectTo2D(this.embeddings);
+                visualizeClusters(points2D, assignments);
+                
+                // Show results
+                this.showResults(texts, assignments);
+                
+                // Save to localStorage
+                this.saveToLocalStorage();
+            }
+
+            showResults(texts, assignments) {
+                const results = document.getElementById('results');
+                results.innerHTML = '';
+                
+                // Group by cluster
+                const clusters = {};
+                texts.forEach((text, i) => {
+                    const cluster = assignments[i];
+                    if (!clusters[cluster]) clusters[cluster] = [];
+                    clusters[cluster].push(text);
+                });
+                const sortedClusters = Object.entries(clusters)
+                        .sort((a, b) => a[1].length - b[1].length);
+                    console.log(sortedClusters)
+
+                // Display clusters
+                sortedClusters.forEach(([cluster, texts]) => {
+                    const div = document.createElement('div');
+                    div.className = 'cluster-group';
+                    div.innerHTML = `
+                        <h3>Cluster ${parseInt(cluster) + 1}</h3>
+                        <ul>
+                            ${texts.map(text => `<li>${text}</li>`).join('')}
+                        </ul>
+                    `;
+                    results.appendChild(div);
+                });
+            }
+
+            saveToLocalStorage() {
+                if (this.data) {
+                    localStorage.setItem('semanticData', JSON.stringify({
+                        data: this.data,
+                        embeddings: this.embeddings
+                    }));
+                }
+
+                const column = document.getElementById('columnSelect').value;
+                localStorage.setItem('columnSelect', column)
+            }
+
+            loadFromLocalStorage() {
+                const saved = localStorage.getItem('semanticData');
+                if (saved) {
+                    const { data, embeddings } = JSON.parse(saved);
+                    this.data = data;
+                    this.embeddings = embeddings;
+                    this.updateColumnSelect();
+                    this.showPreview();
+                }
+                if (localStorage.getItem('columnSelect')) {
+                    document.getElementById('columnSelect').value = localStorage.getItem('columnSelect')
+                    document.getElementById('analyzeBtn').disabled = false;
+                }
+            }
+
+            clearData() {
+                localStorage.removeItem('semanticData');
+                location.reload();
+            }
+        }
+
+        // Initialize the application
+        new SemanticAnalyzer();
+    </script>
+</body>
+</html>
