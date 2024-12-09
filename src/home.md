@@ -6,7 +6,7 @@
     finding meaning in the mundane
 </p>
 
-I send out tiny anonymous surveys to my friends, to my local community, and to the internet about something I'm really curious about.
+Every week I send out a tiny anonymous survey to my friends, to my local community, and to the internet about something I'm really curious about.
 
 <!-- 
 
@@ -21,11 +21,21 @@ What is 7 Second Surveys really about?
 
  -->
 
+ ## Archive
+
 <ol reversed>
     <li>
         <a href="1_breakfast.html">What do you have for breakfast?</a> - <i>December 2nd, 2024</i>
     </li>
 </ol>
+
+## Current active survey
+
+Link: [https://forms.gle/99gsxYnps7N7Nhk76](https://forms.gle/99gsxYnps7N7Nhk76)
+
+<a href="https://forms.gle/99gsxYnps7N7Nhk76">
+    <img src="images/politics-parents.png" style="max-width:450px" >
+</a>
 
 <br/><br/><br/><br/>
 <p style="color:gray">
