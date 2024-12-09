@@ -81,7 +81,7 @@ It's been over a year since my last phase of consistently making myself a nice b
 I had a phase where I was really obsessed with Joe Pera. He had one episode called _Joe Pera Takes You To Breakfast_ that I must've watched a dozen times. I used to watch it after making myself a really nice bowl of oatmeal with all the berries & maple syrup. Not much really happens in this episode, other than Joe trying to decide what to have for breakfast, and asking the same question to his friends & loved ones.
 
 <center>
-    <video style="max-width:600px; border-radius: 15px;" src="assets/joe-pera-breakfast.mp4" autoplay="autoplay" muted loop></video>
+    <video style="width: 100%; max-width:600px; border-radius: 15px;" src="assets/joe-pera-breakfast.mp4" autoplay="autoplay" muted loop></video>
     <p style="margin-top: 10px; font-size: 14px; color: #555; max-width:400px;">
         Opening scene of <a href="https://www.youtube.com/watch?v=gFmwV7_i4Lk" target="_blank" style="color:#555; text-decoration:underline">"Joe Pera Takes you to Breakfast"</a>. Joe is thinking about all the possibilities he could have at this diner. 
     </p>
