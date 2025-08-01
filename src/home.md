@@ -29,13 +29,6 @@ What is 7 Second Surveys really about?
     </li>
 </ol>
 
-## Current active survey
-
-Link: [https://forms.gle/99gsxYnps7N7Nhk76](https://forms.gle/99gsxYnps7N7Nhk76)
-
-<a href="https://forms.gle/99gsxYnps7N7Nhk76">
-    <img src="images/politics-parents.png" style="max-width:450px" >
-</a>
 
 <br/><br/><br/><br/>
 <p style="color:gray">
